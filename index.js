@@ -1,7 +1,7 @@
 const fs = require("fs");
 const path = require("path");
-
-class JsonDb {
+ 
+module.exports = class {
 	constructor(custom = {}) {
 		let parameters = {
 			dir: path.join(__dirname, "tables/")
@@ -107,14 +107,35 @@ class JsonDb {
 							const increment = this.database.tables.find(t => t.tableName === this.parameters.tableName).increment;
 							result = [];
 							console.log(increment, content.length)
-							for(let i = increment; i !== content.length; i--) {
-								console.log("id: ", i);
+							for(let i = increment; i !== (increment- content.length); i--) {
+								result.push(this.select(item => item._id === i))[0];
 							}
 						} else if(typeof content === "object") {
 							insertItem(content);
+							const increment = this.database.tables.find(t => t.tableName === this.parameters.tableName).increment;
+							result = this.select(item => item._id === increment)[0];
+						   
 						}
 						if(!callback) return result;
 						callback(result);
+					}
+					update(condition = item => true, replace) {
+						const changes = [];
+						const data = this.database;
+						const table = data.tables.find(t => t.tableName === this.parameters.tableName);
+						table.items.filter(condition).forEach(item => {
+							const final = {
+								...item,
+								...replace
+							};
+							table.items[table.items.indexOf(item)] = final;
+							changes.push({
+								"from": item,
+								"to": final
+							});
+						});
+						this.data = data;
+						this.emit("update", changes)
 					}
 					delete(condition = null) {
 						if(!condition) return;
@@ -150,6 +171,3 @@ class JsonDb {
 		} return new Database(parameters);
 	}
 }
-
-module.exports = JsonDb;
-//test
