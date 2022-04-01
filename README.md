@@ -8,13 +8,25 @@ const JsonDb = require("../localjsondb/index.js");
 const db = JsonDb.connectTo("myDb");
 module.exports = db;
 ```
-## insert item
+## insert items
 ```js
-// insert client in the table "clients"
+// insert one client in the table "clients"
 db.table("clients").insert({
 	firstname: "John",
 	lastname: "Doe"
 });
+
+// insert multiple clients at once in the table "clients"
+db.table("clients").insert([
+	{
+		firstname: "John",
+		lastname: "Doe"
+	},
+	{
+		firstname: "David",
+		lastname: "Doe"
+	},
+]);
 ```
 
 ## select items
