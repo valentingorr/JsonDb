@@ -2,12 +2,23 @@
 
 simple way to store json data localy for free.
 
-## connection
+## init
 ```js
-const JsonDb = require("../localjsondb/index.js");
-const db = JsonDb.connectTo("myDb");
+const JsonDataBase = require("./JsonDb/index.js");
+const JsonDb = new JsonDataBase();
+
+//set custom folder
+const JsonDb = new JsonDataBase({
+	dir: "./myDatabases/"
+});
+```
+
+## connect to db
+```js
+const db = JsonDb.connectTo("mydbname");
 module.exports = db;
 ```
+
 ## insert items
 ```js
 // insert one client in the table "clients"
