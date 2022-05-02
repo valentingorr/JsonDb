@@ -49,6 +49,12 @@ db.table("clients").select();
 
 // select items with a condition
 db.table("clients").select(item => item.firstname === "John");
+
+//select attributes
+db.table("clients").select(["firstName"]);
+
+//as well
+db.table("clients").select(["lastName"], item => item.firstname === "John");
 ```
 
 ## update items
@@ -69,6 +75,35 @@ db.table("clients").update(item => item.firstname === "John", {
 ## delete items
 ```js
 db.table("clients").delete(item => item.firstname === "John");
+```
+
+## join multiple tables
+```js
+db.table("employees").insert([
+    {
+        name: "John Doe",
+        company: 1
+    },
+    {
+        name: "Charles Roberts",
+        company: 2
+    }
+]);
+
+db.table("companies").insert([
+    { name: "Front-End & Co" },
+    { name: "Back-End & Co" }
+]);
+
+const employees = db.table("employees").join("companies", "company", (current, accumulator) => current.company === accumulator._id).select(["name", ["company.name", "company"]]);
+console.log(employees);
+//
+// returns:
+//  [
+//      { name: 'John Doe', company: 'Front-End & Co' },
+//      { name: 'Charles Roberts', company: 'Back-End & Co' }
+//  ]
+//
 ```
 
 ## add events to tables

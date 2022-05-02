@@ -58,6 +58,7 @@ module.exports = class {
 			table(tableName) {
 				class Table {
 					constructor(parameters, events) {
+						this.joins = [];
 						this.events = events;
 						this.parameters = parameters;
 						const data = this.database;
@@ -83,10 +84,78 @@ module.exports = class {
 						return JSON.parse(fs.readFileSync(this.parameters.file));
 					}
 					get items() {
-						return this.database.tables.find(t => t.tableName === this.parameters.tableName).items;
+						let items = this.database.tables.find(t => t.tableName === this.parameters.tableName).items;
+						if(this.joins[0]) {
+							for(let join of this.joins) {
+								const joinedItems = this.database.tables.find(t => t.tableName === join.tableName).items;
+								items = items.map(item => {
+									let joined = {};
+									for(let joinedItem of joinedItems) {
+										if(join.joinParameters(item, joinedItem)) joined = joinedItem;
+									}
+									if(join.alias) {
+										let object = {
+											...item
+										}
+										object[join.alias] = joined;
+										return object;
+									} return {
+										...joined,
+										...item
+									}
+								});
+							}
+						}
+						return items;
+
 					}
-					select(condition = item => true) {
-						return this.items.filter(condition);
+					select(arg1, arg2) {
+						const parameters = {
+							condition: () => true,
+							map: false
+						};
+						[arg1, arg2].filter(arg => arg ? true : false).forEach(arg => {
+							switch (typeof arg) {
+								case "function":
+									parameters.condition = arg;
+									break;
+								case "object":
+									if(!Array.isArray(arg)) break;
+									parameters.map = arg;
+									break;
+							}
+						});
+						if(!parameters.map) return this.items.filter(parameters.condition);
+						return this.items.filter(parameters.condition).map(item => {
+							const object = {};
+							parameters.map.forEach(marker => {
+								const getValueFromAttributeString = string => {
+									let data = item;
+									let value;
+									let attribute;
+									string.split(".").forEach(attr => {
+										value = data[attr];
+										attribute = attr;
+										data = data[attr];
+									});
+									return {
+										value: value,
+										attribute: attribute
+									};
+								};
+								switch (typeof marker) {
+									case "string":
+										const value = getValueFromAttributeString(marker);
+										object[value.attribute] = value.value;
+										break;
+									case "object":
+										if(!Array.isArray(marker)) break;
+										object[marker[1]] = getValueFromAttributeString(marker[0]).value;
+										break;
+								}
+							});
+							return object;
+						});
 					}
 					insert(content, callback = null) {
 						const insertItem = item => {
@@ -106,7 +175,6 @@ module.exports = class {
 							content.forEach(item => insertItem(item));
 							const increment = this.database.tables.find(t => t.tableName === this.parameters.tableName).increment;
 							result = [];
-							console.log(increment, content.length)
 							for(let i = increment; i !== (increment- content.length); i--) {
 								result.push(this.select(item => item._id === i))[0];
 							}
@@ -119,7 +187,8 @@ module.exports = class {
 						if(!callback) return result;
 						callback(result);
 					}
-					update(condition = item => true, replace) {
+					update(condition, replace) {
+						if(condition === true) condition = item => true;
 						const changes = [];
 						const data = this.database;
 						const table = data.tables.find(t => t.tableName === this.parameters.tableName);
@@ -153,6 +222,29 @@ module.exports = class {
 						table.items = [];
 						this.data = data;
 						this.emit("dump");
+					}
+					join(arg1, arg2, arg3) {
+						const parameters = {
+							tableName: undefined,
+							alias: undefined,
+							joinParameters: () => {}
+						};
+						[arg1, arg2, arg3].filter(arg => arg ? true : false).forEach(arg => {
+							switch (typeof arg) {
+								case "string":
+									if(!parameters.tableName) {
+										parameters.tableName = arg;
+										break;
+									}
+									parameters.alias = arg;
+									break;
+								case "function":
+									parameters.joinParameters = arg;
+									break;
+							}
+						});
+						this.joins.push(parameters);
+						return this;
 					}
 				};
 				return new Table({
