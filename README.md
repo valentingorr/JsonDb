@@ -2,6 +2,10 @@
 
 simple way to store json data localy for free.
 
+```bach
+git clone https://github.com/valentingorr/JsonDb
+```
+
 ## init
 ```js
 const JsonDataBase = require("./JsonDb/index.js");
